@@ -14,7 +14,27 @@ public class ChannelConfiguration {
     }
 
     @Bean
-    public MessageChannel loggingMessageChannel() {
+    public MessageChannel transformedMessageChannel() {
+        return new PublishSubscribeChannel();
+    }
+
+    @Bean
+    public MessageChannel enrichedMessageChannel() {
+        return new PublishSubscribeChannel();
+    }
+
+    @Bean
+    public MessageChannel enrichRequestMessageChannel() {
+        return new PublishSubscribeChannel();
+    }
+
+    @Bean
+    public MessageChannel enrichErrorMessageChannel() {
+        return new PublishSubscribeChannel();
+    }
+
+    @Bean
+    public MessageChannel enrichReplyMessageChannel() {
         return new PublishSubscribeChannel();
     }
 }
