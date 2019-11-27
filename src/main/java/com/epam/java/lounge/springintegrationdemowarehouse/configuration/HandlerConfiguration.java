@@ -1,20 +1,39 @@
 package com.epam.java.lounge.springintegrationdemowarehouse.configuration;
 
-import com.epam.java.lounge.springintegrationdemowarehouse.model.Item;
-import com.epam.java.lounge.springintegrationdemowarehouse.model.WarehouseItem;
+import com.epam.common.model.Delivery;
+import com.epam.common.model.WarehouseItem;
+import com.epam.java.lounge.springintegrationdemowarehouse.aggregator.DeliveryReleaseStrategy;
+import com.epam.java.lounge.springintegrationdemowarehouse.aggregator.OrderCorrelationStrategy;
+import com.epam.java.lounge.springintegrationdemowarehouse.filter.WarehouseItemFilter;
+import com.epam.java.lounge.springintegrationdemowarehouse.transformer.DeliveryCreator;
 import com.epam.java.lounge.springintegrationdemowarehouse.transformer.WarehouseItemTransformer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.convert.ConversionService;
+import org.springframework.http.converter.HttpMessageConverter;
+import org.springframework.integration.aggregator.AggregatingMessageHandler;
+import org.springframework.integration.aggregator.DefaultAggregatingMessageGroupProcessor;
+import org.springframework.integration.annotation.Aggregator;
 import org.springframework.integration.annotation.ServiceActivator;
 import org.springframework.integration.annotation.Transformer;
 import org.springframework.integration.handler.LoggingHandler;
 import org.springframework.integration.handler.LoggingHandler.Level;
+import org.springframework.integration.http.converter.SerializingHttpMessageConverter;
 import org.springframework.integration.http.dsl.Http;
 import org.springframework.integration.http.dsl.HttpRequestHandlerEndpointSpec;
-import org.springframework.integration.transformer.ContentEnricher;
+import org.springframework.integration.store.MessageGroupStore;
+import org.springframework.integration.store.SimpleMessageStore;
+import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.MessageHandler;
+import org.springframework.messaging.support.GenericMessage;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import static com.epam.java.lounge.springintegrationdemowarehouse.configuration.Channels.AGGREGATED_ITEMS_CHANNEL;
+import static com.epam.java.lounge.springintegrationdemowarehouse.configuration.Channels.DELIVERY_CHANNEL;
+import static com.epam.java.lounge.springintegrationdemowarehouse.configuration.Channels.FILTERED_MESSAGE_CHANNEL;
 
 @Configuration
 public class HandlerConfiguration {
@@ -23,8 +42,13 @@ public class HandlerConfiguration {
     public HttpRequestHandlerEndpointSpec incomingMessageHandler(MessageChannel incomingMessageChannel) {
         HttpRequestHandlerEndpointSpec spec = Http.inboundChannelAdapter("/");
 
+        List<HttpMessageConverter<?>> converters = new ArrayList<>();
+        converters.add(new SerializingHttpMessageConverter());
+
+        spec.get().setMessageConverters(converters);
+
         spec.get().setRequestChannel(incomingMessageChannel);
-        spec.get().setRequestPayloadTypeClass(Item.class);
+        spec.get().setRequestPayloadTypeClass(GenericMessage.class);
         return spec;
     }
 
@@ -63,6 +87,54 @@ public class HandlerConfiguration {
     public MessageHandler enrichErrorMessageLogger() {
         LoggingHandler loggingHandler = new LoggingHandler(Level.ERROR);
         loggingHandler.setLogExpressionString("'Error during message handling: ' + payload");
+        return loggingHandler;
+    }
+
+    @Bean
+    public WarehouseItemFilter itemFilter() {
+        return new WarehouseItemFilter();
+    }
+
+    @Bean
+    public DeliveryReleaseStrategy deliveryReleaseStrategy() {
+        return new DeliveryReleaseStrategy();
+    }
+
+    @Bean
+    public OrderCorrelationStrategy orderCorrelationStrategy() {
+        return new OrderCorrelationStrategy();
+    }
+
+    @Bean
+    public MessageGroupStore messageGroupStore() {
+        return new SimpleMessageStore();
+    }
+
+    @Bean
+    @ServiceActivator(inputChannel = FILTERED_MESSAGE_CHANNEL)
+    public MessageHandler aggregator(DeliveryReleaseStrategy deliveryReleaseStrategy,
+                                     OrderCorrelationStrategy orderCorrelationStrategy,
+                                     MessageGroupStore messageGroupStore) {
+        AggregatingMessageHandler aggregator =
+                new AggregatingMessageHandler(new DefaultAggregatingMessageGroupProcessor(), messageGroupStore);
+
+        aggregator.setOutputChannelName(AGGREGATED_ITEMS_CHANNEL);
+        aggregator.setCorrelationStrategy(orderCorrelationStrategy);
+        aggregator.setReleaseStrategy(deliveryReleaseStrategy);
+        return aggregator;
+    }
+
+    @Bean
+    @Transformer(inputChannel = AGGREGATED_ITEMS_CHANNEL, outputChannel = DELIVERY_CHANNEL)
+    public DeliveryCreator deliveryCreator() {
+        return new DeliveryCreator();
+    }
+
+    @Bean
+    @ServiceActivator(inputChannel = Channels.DELIVERY_CHANNEL)
+    public MessageHandler deliveryLogger() {
+        LoggingHandler loggingHandler = new LoggingHandler(Level.INFO);
+        loggingHandler.setLogExpressionString("'Delivery is created: ' + payload");
         return loggingHandler;
     }
 }

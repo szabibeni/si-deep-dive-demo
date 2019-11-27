@@ -1,7 +1,7 @@
 package com.epam.java.lounge.springintegrationdemowarehouse.transformer;
 
-import com.epam.java.lounge.springintegrationdemowarehouse.model.Item;
-import com.epam.java.lounge.springintegrationdemowarehouse.model.WarehouseItem;
+import com.epam.common.model.Item;
+import com.epam.common.model.WarehouseItem;
 import org.springframework.core.convert.ConversionService;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.GenericMessage;

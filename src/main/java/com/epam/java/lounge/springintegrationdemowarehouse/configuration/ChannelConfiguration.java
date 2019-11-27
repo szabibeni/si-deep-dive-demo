@@ -37,4 +37,19 @@ public class ChannelConfiguration {
     public MessageChannel enrichReplyMessageChannel() {
         return new PublishSubscribeChannel();
     }
+
+    @Bean
+    public MessageChannel filteredMessageChannel() {
+        return new PublishSubscribeChannel();
+    }
+
+    @Bean
+    public MessageChannel aggregatedItemsChannel() {
+        return new PublishSubscribeChannel();
+    }
+
+    @Bean
+    public MessageChannel deliveryChannel() {
+        return new PublishSubscribeChannel();
+    }
 }
