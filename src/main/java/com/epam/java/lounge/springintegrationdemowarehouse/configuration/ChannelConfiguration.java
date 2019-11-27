@@ -1,5 +1,6 @@
 package com.epam.java.lounge.springintegrationdemowarehouse.configuration;
 
+import com.epam.java.lounge.springintegrationdemowarehouse.interceptor.LoggerInterceptor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.integration.channel.PublishSubscribeChannel;
@@ -39,8 +40,10 @@ public class ChannelConfiguration {
     }
 
     @Bean
-    public MessageChannel filteredMessageChannel() {
-        return new PublishSubscribeChannel();
+    public MessageChannel filteredMessageChannel(LoggerInterceptor loggerInterceptor) {
+        PublishSubscribeChannel channel = new PublishSubscribeChannel();
+        channel.addInterceptor(loggerInterceptor);
+        return channel;
     }
 
     @Bean

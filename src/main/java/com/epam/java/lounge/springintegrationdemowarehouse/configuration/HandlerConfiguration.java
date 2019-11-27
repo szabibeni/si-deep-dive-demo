@@ -1,10 +1,9 @@
 package com.epam.java.lounge.springintegrationdemowarehouse.configuration;
 
-import com.epam.common.model.Delivery;
-import com.epam.common.model.WarehouseItem;
 import com.epam.java.lounge.springintegrationdemowarehouse.aggregator.DeliveryReleaseStrategy;
 import com.epam.java.lounge.springintegrationdemowarehouse.aggregator.OrderCorrelationStrategy;
 import com.epam.java.lounge.springintegrationdemowarehouse.filter.WarehouseItemFilter;
+import com.epam.java.lounge.springintegrationdemowarehouse.interceptor.LoggerInterceptor;
 import com.epam.java.lounge.springintegrationdemowarehouse.transformer.DeliveryCreator;
 import com.epam.java.lounge.springintegrationdemowarehouse.transformer.WarehouseItemTransformer;
 import org.springframework.context.annotation.Bean;
@@ -13,7 +12,6 @@ import org.springframework.core.convert.ConversionService;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.integration.aggregator.AggregatingMessageHandler;
 import org.springframework.integration.aggregator.DefaultAggregatingMessageGroupProcessor;
-import org.springframework.integration.annotation.Aggregator;
 import org.springframework.integration.annotation.ServiceActivator;
 import org.springframework.integration.annotation.Transformer;
 import org.springframework.integration.handler.LoggingHandler;
@@ -23,7 +21,6 @@ import org.springframework.integration.http.dsl.Http;
 import org.springframework.integration.http.dsl.HttpRequestHandlerEndpointSpec;
 import org.springframework.integration.store.MessageGroupStore;
 import org.springframework.integration.store.SimpleMessageStore;
-import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.MessageHandler;
 import org.springframework.messaging.support.GenericMessage;
@@ -31,9 +28,7 @@ import org.springframework.messaging.support.GenericMessage;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.epam.java.lounge.springintegrationdemowarehouse.configuration.Channels.AGGREGATED_ITEMS_CHANNEL;
-import static com.epam.java.lounge.springintegrationdemowarehouse.configuration.Channels.DELIVERY_CHANNEL;
-import static com.epam.java.lounge.springintegrationdemowarehouse.configuration.Channels.FILTERED_MESSAGE_CHANNEL;
+import static com.epam.java.lounge.springintegrationdemowarehouse.configuration.Channels.*;
 
 @Configuration
 public class HandlerConfiguration {
@@ -50,6 +45,11 @@ public class HandlerConfiguration {
         spec.get().setRequestChannel(incomingMessageChannel);
         spec.get().setRequestPayloadTypeClass(GenericMessage.class);
         return spec;
+    }
+
+    @Bean
+    public LoggerInterceptor loggerInterceptor() {
+        return new LoggerInterceptor();
     }
 
     @Bean
